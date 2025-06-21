@@ -27,9 +27,7 @@ A classic terminal-based Snake game with customizable speed levels and persisten
 
 1. Download the latest release tarball:
 
-```bash
-wget https://github.com/mr-zlaam/snake-game/releases/download/game/snake-game-v1.0.tar.gz
-```
+   - download it from [here](https://github.com/mr-zlaam/snake-game/releases/download/game/snake-game-v1.0.tar.gz)
 
 2. Extract and install:
 
@@ -110,6 +108,5 @@ snake-game [--help]
 sudo rm -rf /usr/local/share/snake-game /usr/local/bin/snake-game
 rm -rf ~/.config/snake-game
 ```
-
 
 ---
