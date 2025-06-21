@@ -22,19 +22,21 @@ def draw_start_menu(stdscr, sh, sw):
     while True:
         key = stdscr.getch()
         if key == ord('s'):
-            stdscr.clear()  # Clear menu before starting
+            stdscr.clear()
             return 8  # Default to level 8
         elif key == ord('l'):
             stdscr.clear()
             stdscr.addstr(sh // 2 - 1, sw // 2 - 10, "Enter Level (1-9): ")
             stdscr.refresh()
             try:
-                level = int(stdscr.getch() - ord('0'))  # Get single digit
+                level = int(stdscr.getch() - ord('0'))
                 if 1 <= level <= 9:
-                    stdscr.clear()  # Clear menu after level selection
+                    stdscr.clear()
                     return level
             except:
                 continue
+        elif key == ord('q'):
+            raise SystemExit
 
 def draw_menu(stdscr, sh, sw, score, high_score):
     stdscr.clear()
@@ -57,188 +59,179 @@ def draw_menu(stdscr, sh, sw, score, high_score):
             return False
 
 def game_loop(stdscr, level, high_score):
-    curses.curs_set(0)  # Hide cursor
-    sh, sw = stdscr.getmaxyx()  # Get screen dimensions
-    if sh < 10 or sw < 20:
+    curses.curs_set(0)
+    sh, sw = stdscr.getmaxyx()
+    
+    # Calculate dimensions for invisible outer box and visible inner box
+    outer_padding = 2
+    inner_padding = 1
+    
+    # Outer box dimensions (invisible)
+    outer_height = sh - (outer_padding * 2)
+    outer_width = sw - (outer_padding * 2)
+    
+    # Inner box dimensions (visible)
+    inner_height = outer_height - (inner_padding * 2)
+    inner_width = outer_width - (inner_padding * 2)
+    
+    if inner_height < 10 or inner_width < 20:
         stdscr.addstr(0, 0, "Terminal too small!")
         stdscr.refresh()
         time.sleep(2)
         return False, high_score
 
-    w = stdscr.subwin(sh, sw, 0, 0)  # Create game window
-    w.box()  # Draw border
-
-    # Initialize snake (using * for body, @ for head)
-    snake_x = sw // 4
-    snake_y = sh // 2
+    # Create invisible outer box (no border drawn)
+    outer_win = curses.newwin(outer_height, outer_width, outer_padding, outer_padding)
+    
+    # Draw stats in outer box header (centered)
+    stats_text = f" Level: {level} | Score: 0 | High: {high_score} "
+    outer_win.addstr(0, (outer_width - len(stats_text)) // 2, stats_text)
+    
+    # Create visible inner box
+    inner_win = curses.newwin(inner_height, inner_width, 
+                             outer_padding + inner_padding, 
+                             outer_padding + inner_padding)
+    inner_win.box()
+    
+    # Initialize snake (@ for head, o for body)
+    snake_x = inner_width // 4
+    snake_y = inner_height // 2
     snake = [
         [snake_y, snake_x],
         [snake_y, snake_x - 1],
         [snake_y, snake_x - 2]
     ]
-    for y, x in snake[1:]:  # Draw body segments as *
-        w.addch(y, x, '*')
-    w.addch(snake[0][0], snake[0][1], '@')  # Draw head as @
+    for y, x in snake[1:]:
+        inner_win.addch(y, x, 'o')
+    inner_win.addch(snake[0][0], snake[0][1], '@')
 
-    # Initialize food (using @, but will be regenerated if it overlaps)
-    food = [sh // 2, sw // 2]
+    # Initialize food
+    food = [random.randint(1, inner_height - 2), random.randint(1, inner_width - 2)]
     while food in snake:
-        food = [random.randint(1, sh - 2), random.randint(1, sw - 2)]
-    w.addch(food[0], food[1], '@')
+        food = [random.randint(1, inner_height - 2), random.randint(1, inner_width - 2)]
+    inner_win.addch(food[0], food[1], '$')
 
-    # Initialize direction (right)
     direction = curses.KEY_RIGHT
-
-    # Initialize speed and score
-    base_timeout = max(40, 200 - (level * 10))  # 200ms at level 1, 40ms at level 16
+    base_timeout = max(40, 200 - (level * 10))
     score = 0
-    food_count = 0
-    w.timeout(base_timeout)
+    inner_win.timeout(base_timeout)
     paused = False
 
     while True:
-        # Display live score and high score at top-right
-        w.addstr(1, sw - 20, f"Score: {score}  High: {high_score}")
-        # Redraw food to prevent disappearance
-        w.addch(food[0], food[1], '@')
-        w.refresh()
-
-        try:
-            key = w.getch()  # Get user input
-        except:
-            key = -1
-
-        # Toggle pause/resume with spacebar
+        # Update stats
+        stats_text = f" Level: {level} | Score: {score} | High: {high_score} "
+        outer_win.addstr(0, (outer_width - len(stats_text)) // 2, stats_text)
+        outer_win.refresh()
+        
+        key = inner_win.getch()
         if key == ord(' '):
             paused = not paused
             if paused:
-                w.addstr(sh // 2, sw // 2 - 5, "Paused")
-                # Redraw food and snake to maintain visibility
-                w.addch(food[0], food[1], '@')
-                for y, x in snake[1:]:
-                    w.addch(y, x, '*')
-                w.addch(snake[0][0], snake[0][1], '@')
-                w.refresh()
+                inner_win.addstr(inner_height // 2, inner_width // 2 - 5, "Paused")
+                inner_win.refresh()
                 while paused:
-                    key = w.getch()
+                    key = inner_win.getch()
                     if key == ord(' '):
                         paused = False
-                        w.addstr(sh // 2, sw // 2 - 5, "      ")  # Clear "Paused" text
-                        w.refresh()
+                        inner_win.addstr(inner_height // 2, inner_width // 2 - 5, "      ")
+                        inner_win.refresh()
                     elif key == ord('q'):
-                        return score, high_score  # Quit game if 'q' pressed while paused
+                        raise SystemExit
             continue
+        elif key == ord('q'):
+            raise SystemExit
 
         if not paused:
-            # Map keys to directions (arrow keys and hjkl)
+            # Only hjkl controls
             key_map = {
-                curses.KEY_UP: curses.KEY_UP,
-                curses.KEY_DOWN: curses.KEY_DOWN,
-                curses.KEY_LEFT: curses.KEY_LEFT,
-                curses.KEY_RIGHT: curses.KEY_RIGHT,
-                ord('k'): curses.KEY_UP,    # Vim: k for up
-                ord('j'): curses.KEY_DOWN,  # Vim: j for down
-                ord('h'): curses.KEY_LEFT,  # Vim: h for left
-                ord('l'): curses.KEY_RIGHT  # Vim: l for right
+                ord('k'): curses.KEY_UP,
+                ord('j'): curses.KEY_DOWN,
+                ord('h'): curses.KEY_LEFT,
+                ord('l'): curses.KEY_RIGHT
             }
 
-            # Update direction if valid key pressed
             if key in key_map:
-                new_direction = key_map[key]
-                # Prevent reversing direction
-                if (
-                    (new_direction == curses.KEY_RIGHT and direction != curses.KEY_LEFT) or
-                    (new_direction == curses.KEY_LEFT and direction != curses.KEY_RIGHT) or
-                    (new_direction == curses.KEY_UP and direction != curses.KEY_DOWN) or
-                    (new_direction == curses.KEY_DOWN and direction != curses.KEY_UP)
-                ):
-                    direction = new_direction
+                new_dir = key_map[key]
+                # Prevent reverse movement
+                if not ((direction == curses.KEY_UP and new_dir == curses.KEY_DOWN) or
+                        (direction == curses.KEY_DOWN and new_dir == curses.KEY_UP) or
+                        (direction == curses.KEY_LEFT and new_dir == curses.KEY_RIGHT) or
+                        (direction == curses.KEY_RIGHT and new_dir == curses.KEY_LEFT)):
+                    direction = new_dir
 
-            # Calculate new head position
-            new_head = [snake[0][0], snake[0][1]]
-            if direction == curses.KEY_RIGHT:
-                new_head[1] += 1
-            elif direction == curses.KEY_LEFT:
-                new_head[1] -= 1
-            elif direction == curses.KEY_UP:
+            # Move head
+            head = snake[0]
+            new_head = [head[0], head[1]]
+            
+            if direction == curses.KEY_UP:
                 new_head[0] -= 1
             elif direction == curses.KEY_DOWN:
                 new_head[0] += 1
+            elif direction == curses.KEY_LEFT:
+                new_head[1] -= 1
+            elif direction == curses.KEY_RIGHT:
+                new_head[1] += 1
 
-            # Check for collision with walls
-            if new_head[0] <= 0 or new_head[0] >= sh - 1 or new_head[1] <= 0 or new_head[1] >= sw - 1:
+            # Check collisions with inner box walls or self
+            if (new_head[0] <= 0 or new_head[0] >= inner_height - 1 or 
+                new_head[1] <= 0 or new_head[1] >= inner_width - 1 or 
+                new_head in snake):
                 break
 
-            # Check for collision with self
-            if new_head in snake[1:]:  # Check body only, not head
-                break
-
-            # Insert new head
+            # Move snake
             snake.insert(0, new_head)
-            w.addch(new_head[0], new_head[1], '@')  # Draw new head as @
+            inner_win.addch(new_head[0], new_head[1], '@')
+            inner_win.addch(snake[1][0], snake[1][1], 'o')
 
-            # Check if food is eaten
+            # Check food
             if new_head == food:
-                food_count += 1
-                score += level  # Points per bite based on level
-                # Generate new food
-                food = None
-                while food is None or food in snake:
-                    nf = [random.randint(1, sh - 2), random.randint(1, sw - 2)]
-                    food = nf
-                w.addch(food[0], food[1], '@')
-                # Update high score live
+                score += level
                 if score > high_score:
                     high_score = score
-                    high_score_file = get_high_score_file()
                     try:
-                        with open(high_score_file, 'w') as f:
+                        with open(get_high_score_file(), 'w') as f:
                             f.write(str(high_score))
-                    except IOError as e:
-                        w.addstr(2, 1, f"Error saving high score: {e}")
-                        w.refresh()
-                        time.sleep(2)
+                    except IOError:
+                        pass
+                
+                # Generate new food
+                food = [random.randint(1, inner_height - 2), random.randint(1, inner_width - 2)]
+                while food in snake:
+                    food = [random.randint(1, inner_height - 2), random.randint(1, inner_width - 2)]
+                inner_win.addch(food[0], food[1], '$')
             else:
                 tail = snake.pop()
-                w.addch(tail[0], tail[1], ' ')
+                inner_win.addch(tail[0], tail[1], ' ')
+
+        inner_win.refresh()
 
     return score, high_score
 
 def main(stdscr):
-    # Load initial high score or initialize to 0
-    high_score_file = get_high_score_file()
     high_score = 0
-    if os.path.exists(high_score_file):
-        try:
-            with open(high_score_file, 'r') as f:
-                content = f.read().strip()
-                if content.isdigit():
-                    high_score = int(content)
-        except (IOError, ValueError) as e:
-            stdscr.addstr(0, 0, f"Error reading high score: {e}")
-            stdscr.refresh()
-            time.sleep(2)
+    try:
+        with open(get_high_score_file(), 'r') as f:
+            high_score = int(f.read().strip())
+    except:
+        pass
 
-    while True:
-        level = draw_start_menu(stdscr, *stdscr.getmaxyx())
-        score, high_score = game_loop(stdscr, level, high_score)
-        if score is False:  # Terminal too small
-            break
-        sh, sw = stdscr.getmaxyx()
-        if not draw_menu(stdscr, sh, sw, score, high_score):
-            break
+    try:
+        while True:
+            level = draw_start_menu(stdscr, *stdscr.getmaxyx())
+            score, high_score = game_loop(stdscr, level, high_score)
+            if not draw_menu(stdscr, *stdscr.getmaxyx(), score, high_score):
+                break
+    except SystemExit:
+        pass
+    except KeyboardInterrupt:
+        pass
 
 if __name__ == '__main__':
-    # Check for Python version before starting
     if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 6):
-        print("Error: This game requires Python 3.6 or higher.")
-        print("Please install Python 3 from https://www.python.org/downloads/")
+        print("Error: Requires Python 3.6+")
         sys.exit(1)
     
     try:
         curses.wrapper(main)
-    except KeyboardInterrupt:
-        print("\nGame exited by user.")
     except Exception as e:
-        print(f"An error occurred: {e}")
-        print("Please ensure your terminal supports curses and is large enough (minimum 20x10).")
+        print(f"Error: {e}")
