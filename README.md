@@ -4,26 +4,22 @@ Here's the updated `installation-guide.md` with GitHub tarball installation inst
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A classic terminal-based Snake game with customizable speed levels and persistent high score tracking. Control the snake using either arrow keys or Vim-style `hjkl` keys.
+A classic terminal-based Snake game with customizable speed levels and persistent high score tracking. Control the snake using Vim-style `hjkl` keys.
 
 ## Table of Contents
 
 - [Compatibility](#compatibility)
 - [Installation](#installation)
-  - [From GitHub Release](#from-github-release)
-  - [Using install.sh](#using-installsh)
-  - [Manual Installation](#manual-installation)
 - [How to Play](#how-to-play)
 - [Controls](#controls)
 - [Troubleshooting](#troubleshooting)
 - [Uninstallation](#uninstallation)
-- [License](#license)
 
 ## Compatibility
 
 - ✅ Linux (all major distributions)
 - ✅ macOS
-- ❌ Windows (requires terminal with curses support)
+- ❌ Windows (Will never support intentionally)
 
 ## Installation
 
@@ -32,7 +28,7 @@ A classic terminal-based Snake game with customizable speed levels and persisten
 1. Download the latest release tarball:
 
 ```bash
-wget https://github.com/mr-zlaam/snake-game/releases/download/v1.0/snake-game-v1.0.tar.gz
+wget https://github.com/mr-zlaam/snake-game/releases/download/game/snake-game-v1.0.tar.gz
 ```
 
 2. Extract and install:
@@ -115,12 +111,5 @@ sudo rm -rf /usr/local/share/snake-game /usr/local/bin/snake-game
 rm -rf ~/.config/snake-game
 ```
 
-## License
-
-MIT License
-
-Copyright (c) [year] [mr-zlaam]
-
-Permission is hereby granted... [rest of MIT license text]
 
 ---
