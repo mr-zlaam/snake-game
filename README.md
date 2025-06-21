@@ -9,7 +9,6 @@ A classic terminal-based Snake game with customizable speed levels and persisten
 
 - [Compatibility](#compatibility)
 - [Installation](#installation)
-- [How to Play](#how-to-play)
 - [Controls](#controls)
 - [Troubleshooting](#troubleshooting)
 - [Uninstallation](#uninstallation)
@@ -66,11 +65,7 @@ EOF
 sudo chmod 755 /usr/local/bin/snake-game /usr/local/share/snake-game/snake_game.py
 ```
 
-## How to Play
 
-```bash
-snake-game [--help]
-```
 
 ### Controls
 
