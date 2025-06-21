@@ -1,4 +1,3 @@
-Here's the updated `installation-guide.md` with GitHub tarball installation instructions and improved organization:
 
 # Snake Game
 
