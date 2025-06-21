@@ -2,6 +2,13 @@ import curses
 import time
 import random
 import os
+import sys
+
+def get_high_score_file():
+    """Returns the correct path for the high score file"""
+    config_dir = os.path.expanduser("~/.config/snake-game")
+    os.makedirs(config_dir, exist_ok=True)
+    return os.path.join(config_dir, "high_score.txt")
 
 def draw_start_menu(stdscr, sh, sw):
     stdscr.clear()
@@ -183,7 +190,7 @@ def game_loop(stdscr, level, high_score):
                 # Update high score live
                 if score > high_score:
                     high_score = score
-                    high_score_file = "high_score.txt"
+                    high_score_file = get_high_score_file()
                     try:
                         with open(high_score_file, 'w') as f:
                             f.write(str(high_score))
@@ -199,14 +206,18 @@ def game_loop(stdscr, level, high_score):
 
 def main(stdscr):
     # Load initial high score or initialize to 0
-    high_score_file = "high_score.txt"
+    high_score_file = get_high_score_file()
     high_score = 0
     if os.path.exists(high_score_file):
-        with open(high_score_file, 'r') as f:
-            try:
-                high_score = int(f.read().strip())
-            except ValueError:
-                high_score = 0
+        try:
+            with open(high_score_file, 'r') as f:
+                content = f.read().strip()
+                if content.isdigit():
+                    high_score = int(content)
+        except (IOError, ValueError) as e:
+            stdscr.addstr(0, 0, f"Error reading high score: {e}")
+            stdscr.refresh()
+            time.sleep(2)
 
     while True:
         level = draw_start_menu(stdscr, *stdscr.getmaxyx())
@@ -218,4 +229,16 @@ def main(stdscr):
             break
 
 if __name__ == '__main__':
-    curses.wrapper(main)
+    # Check for Python version before starting
+    if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 6):
+        print("Error: This game requires Python 3.6 or higher.")
+        print("Please install Python 3 from https://www.python.org/downloads/")
+        sys.exit(1)
+    
+    try:
+        curses.wrapper(main)
+    except KeyboardInterrupt:
+        print("\nGame exited by user.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        print("Please ensure your terminal supports curses and is large enough (minimum 20x10).")
